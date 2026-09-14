@@ -8,11 +8,10 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/**'
-  workflow_dispatch:  # 支持手动触发
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
-  NDK_VERSION: 'r26b'   # 修改为谷歌官方短格式，解决 404 报错
   RUST_VERSION: 'stable'
 
 jobs:
@@ -31,7 +30,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           targets: aarch64-linux-android
 
-      # 3. 缓存 cargo 依赖，加速后续编译
+      # 3. 缓存 cargo 依赖
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -50,28 +49,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-
 
-      # 4. 安装 Android NDK（使用 r26b）
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: ${{ env.NDK_VERSION }}
-          add-to-path: false
-
-      # 5. 安装 cargo-ndk（简化交叉编译配置）
+      # 4. 安装 cargo-ndk
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --version "^3.5"
 
-      # 6. 交叉编译 aarch64-linux-android release 版本
+      # 5. 交叉编译（直接用系统自带 NDK，跳过 setup-ndk）
       - name: Build for Android aarch64
         env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_ROOT }} # 指向系统自带 NDK
         run: |
           cargo ndk \
             --target arm64-v8a \
             --platform 30 \
             build --release
 
-      # 7. 验证编译产物
+      # 6. 验证编译产物
       - name: Verify binary
         run: |
           BINARY="target/aarch64-linux-android/release/fix_tmp_daemon"
@@ -83,10 +75,10 @@ jobs:
           ls -lh "$BINARY"
           file "$BINARY"
 
-      # 8. 上传 Artifact 供下载
+      # 7. 上传 Artifact 供下载
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: fix_tmp_daemon-android-arm64
           path: target/aarch64-linux-android/release/fix_tmp_daemon
-          retention-days: 30   # 保留 30 天
+          retention-days: 30
