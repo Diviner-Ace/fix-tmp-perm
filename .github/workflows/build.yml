@@ -53,11 +53,12 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --version "^3.5"
 
-      # 5. 交叉编译（直接用系统自带 NDK，跳过 setup-ndk）
+      # 5. 自动寻找系统自带的 NDK 并编译（关键修复）
       - name: Build for Android aarch64
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_ROOT }} # 指向系统自带 NDK
         run: |
+          # 自动获取系统自带的最新 NDK 路径
+          export ANDROID_NDK_HOME=$(ls -d /usr/local/lib/android/sdk/ndk/* | head -n 1)
+          echo "使用 NDK 路径: $ANDROID_NDK_HOME"
           cargo ndk \
             --target arm64-v8a \
             --platform 30 \
