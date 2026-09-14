@@ -1,0 +1,16 @@
+[package]
+name = "fix_tmp_daemon"
+version = "1.0.0"
+edition = "2021"
+description = "Android daemon that restores /data/local/tmp permissions after LocationSpoofer exits"
+license = "MIT"
+
+[dependencies]
+libc = "0.2"
+
+[profile.release]
+opt-level = "z"          # 极致优化体积
+lto = true               # 链接时优化，去除死代码
+codegen-units = 1        # 单代码生成单元，进一步压缩
+panic = "abort"          # 移除 panic 展开逻辑，减小二进制
+strip = true             # 剥离调试符号
