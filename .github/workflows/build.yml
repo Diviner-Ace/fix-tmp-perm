@@ -12,7 +12,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  NDK_VERSION: '26.3.11579264'   # Android NDK r26c（稳定版，兼容 Rust aarch64-linux-android）
+  NDK_VERSION: '26.1.10909125'   # 修复：替换为真实存在的稳定版NDK版本
   RUST_VERSION: 'stable'
 
 jobs:
