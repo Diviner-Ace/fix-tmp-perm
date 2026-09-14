@@ -1,0 +1,108 @@
+name: Build Android ARM64 Binary
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/**'
+  workflow_dispatch:  # 支持手动触发
+
+env:
+  CARGO_TERM_COLOR: always
+  NDK_VERSION: '26.3.11579264'   # Android NDK r26c（稳定版，兼容 Rust aarch64-linux-android）
+  RUST_VERSION: 'stable'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------
+      # 1. 检出代码
+      # ----------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------
+      # 2. 安装 Rust 工具链
+      # ----------------------------------------------------------
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-linux-android
+
+      # ----------------------------------------------------------
+      # 3. 缓存 cargo 依赖，加速后续编译
+      # ----------------------------------------------------------
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      # ----------------------------------------------------------
+      # 4. 安装 Android NDK
+      # ----------------------------------------------------------
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: false
+
+      # ----------------------------------------------------------
+      # 5. 安装 cargo-ndk（简化交叉编译配置）
+      # ----------------------------------------------------------
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --version "^3.5"
+
+      # ----------------------------------------------------------
+      # 6. 交叉编译 aarch64-linux-android release 版本
+      # ----------------------------------------------------------
+      - name: Build for Android aarch64
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          cargo ndk \
+            --target arm64-v8a \
+            --platform 30 \
+            build --release
+
+      # ----------------------------------------------------------
+      # 7. 验证编译产物
+      # ----------------------------------------------------------
+      - name: Verify binary
+        run: |
+          BINARY="target/aarch64-linux-android/release/fix_tmp_daemon"
+          if [ ! -f "$BINARY" ]; then
+            echo "::error::编译产物不存在: $BINARY"
+            exit 1
+          fi
+          echo "二进制文件信息:"
+          ls -lh "$BINARY"
+          file "$BINARY"
+
+      # ----------------------------------------------------------
+      # 8. 上传 Artifact 供下载
+      # ----------------------------------------------------------
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fix_tmp_daemon-android-arm64
+          path: target/aarch64-linux-android/release/fix_tmp_daemon
+          retention-days: 30   # 保留 30 天
