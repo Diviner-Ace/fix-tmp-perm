@@ -9,7 +9,7 @@ use std::time::Duration;
 // ============================================================
 // 常量配置
 // ============================================================
-const TARGET_PKG: &str = "com.suseoaa.locationspoofer";
+const TARGET_PKG: &str = "com.vincenthzr.locationspoofer"; // 已修改为最新包名
 const TMP_DIR: &str = "/data/local/tmp";
 const LOG_FILE: &str = "/data/adb/service.d/fix_tmp_daemon.log";
 const POLL_INTERVAL: u64 = 5;     // 巡检间隔（秒）
